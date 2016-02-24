@@ -17,10 +17,10 @@ public class NettyServer {
 	
 	private AtomicBoolean prepared = new AtomicBoolean(false);
 	private int port;
-	private ServerBootstrap innerServer;
+	private ServerBootstrap innerBootstrap;
 
 	public NettyServer() {
-		innerServer = new ServerBootstrap();
+		innerBootstrap = new ServerBootstrap();
 		prepare();
 	}
 
@@ -31,8 +31,8 @@ public class NettyServer {
 		EventLoopGroup boss = new NioEventLoopGroup();
 		int processorNum = Runtime.getRuntime().availableProcessors();
 		EventLoopGroup workers = new NioEventLoopGroup(processorNum * 2);
-		innerServer.channel(NioServerSocketChannel.class).group(boss, workers);
-		innerServer.childHandler(new ChannelInitializer<SocketChannel>() {
+		innerBootstrap.channel(NioServerSocketChannel.class).group(boss, workers);
+		innerBootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
 			@Override
 			protected void initChannel(SocketChannel channel) throws Exception {
 				ChannelPipeline pipeline = channel.pipeline();
@@ -46,6 +46,6 @@ public class NettyServer {
 	}
 	
 	public void bind(){
-		innerServer.bind(port);
+		innerBootstrap.bind(port);
 	}
 }

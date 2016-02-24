@@ -1,13 +1,9 @@
 package com.dianwoba.pusher;
 
-public class AuthenticationException extends SecurityException {
+public class AuthenticationException extends RemoteExcepiton {
 	private static final long serialVersionUID = 1L;
 
-	public AuthenticationException() {
-		super();
-	}
-
-	public AuthenticationException(String causeReason) {
-		super(causeReason);
+	public AuthenticationException(String errorCode, String message) {
+		super(errorCode, message);
 	}
 }

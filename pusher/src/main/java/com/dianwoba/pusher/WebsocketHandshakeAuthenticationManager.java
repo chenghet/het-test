@@ -3,96 +3,146 @@ package com.dianwoba.pusher;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
 
-import java.util.TreeMap;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.NumberUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+import com.dianwoba.constants.CommonConstant.YesOrNo;
+import com.dianwoba.redcliff.commdb.entity.PlatformShop;
+import com.dianwoba.redcliff.commdb.entity.PlatformShopExample;
+import com.dianwoba.redcliff.commdb.mapper.PlatformShopMapperExt;
+
+@Service
 public class WebsocketHandshakeAuthenticationManager {
 
-	private static Logger logger = LoggerFactory.getLogger(WebsocketHandshakeAuthenticationManager.class);
+	@Autowired
+	private PlatformShopMapperExt platformShopMapper;
 
 	/**
-	 * 校验
+	 * Websocket连接权限校验
 	 * 
-	 * @param req
-	 * @return
+	 * @param req HttpRequest
+	 * @throws AuthenticationException
 	 */
-	public boolean authenticationCheck(HttpRequest req) {
-		try {
-			TreeMap<String, String> treeMap = new TreeMap<String, String>();
-			String version = getRequiredHeader(req, WebsocketHandshakeHeader.VERSION);
-			String appKey = getRequiredHeader(req, WebsocketHandshakeHeader.APP_KEY);
-			String timestamp = getRequiredHeader(req, WebsocketHandshakeHeader.TIMESTAMP);
-			if (!checkTimestamp(timestamp)) {
-				return false;
-			}
-			String format = getRequiredHeader(req, WebsocketHandshakeHeader.FORMAT);
-			if (!checkFormat(format)) {
-				return false;
-			}
-			String sign = getRequiredHeader(req, WebsocketHandshakeHeader.SIGN);
+	public void authenticationCheck(HttpRequest req) {
+		String version = getRequiredHeader(req, WebsocketHandshakeHeaderParam.VERSION);
 
-			// 进行sign签名校验
-			treeMap.put(WebsocketHandshakeHeader.VERSION.getHeaderKey(), version);
-			treeMap.put(WebsocketHandshakeHeader.APP_KEY.getHeaderKey(), appKey);
-			treeMap.put(WebsocketHandshakeHeader.TIMESTAMP.getHeaderKey(), timestamp);
-			treeMap.put(WebsocketHandshakeHeader.FORMAT.getHeaderKey(), format);
-			String clacSign = AuthenticationUtil.sign(treeMap, getAppSecret(appKey));
+		// appkey
+		String appKey = getRequiredHeader(req, WebsocketHandshakeHeaderParam.APP_KEY);
+		PlatformShop pshop = getPlatformShop(appKey);
+		checkPlatformShop(pshop);
 
-			if (!sign.equals(clacSign)) {
-				return false;
-			}
-		} catch (Exception e) {
-			logger.warn("Websocket握手权限校验失败", e);
-			return false;
-		}
-		return true;
+		// timestamp
+		String timestamp = getRequiredHeader(req, WebsocketHandshakeHeaderParam.TIMESTAMP);
+		checkTimestamp(timestamp);
+
+		// format
+		String format = getRequiredHeader(req, WebsocketHandshakeHeaderParam.ACCEPT_FORMAT);
+		checkFormat(format);
+
+		// 进行sign签名校验
+		String original = getRequiredHeader(req, WebsocketHandshakeHeaderParam.SIGN);
+		Map<String, String> map = new HashMap<String, String>();
+		map.put(WebsocketHandshakeHeaderParam.VERSION.getParamName(), version);
+		map.put(WebsocketHandshakeHeaderParam.APP_KEY.getParamName(), appKey);
+		map.put(WebsocketHandshakeHeaderParam.TIMESTAMP.getParamName(), timestamp);
+		map.put(WebsocketHandshakeHeaderParam.ACCEPT_FORMAT.getParamName(), format);
+		String calced = AuthenticationUtil.sign(map, getPlatformShop(appKey).getSecret());
+		checkSign(original, calced);
 	}
 
 	/**
 	 * 校验请求的时间戳与服务器是否误差在10分钟之内
 	 * 
 	 * @param timestamp
-	 * @return
+	 * @throws AuthenticationException
 	 */
-	private boolean checkTimestamp(String timestamp) {
-		if (!NumberUtils.isDigits(timestamp)) {
-			return false;
+	private void checkTimestamp(String timestamp) {
+		if (!NumberUtils.isDigits(timestamp) || System.currentTimeMillis() - Long.valueOf(timestamp) > 600000) {
+			throw new AuthenticationException(RemoteErrorEnum.HANDSHAKE_TIMESTAMP_ILLEGAL.getErrCode(),
+					RemoteErrorEnum.HANDSHAKE_TIMESTAMP_ILLEGAL.getMessage());
 		}
-		return System.currentTimeMillis() - Long.valueOf(timestamp) > 600000;
 	}
 
 	/**
 	 * 校验websocket的format方式，目前只支持json
 	 * 
 	 * @param format
-	 * @return
+	 * @throws AuthenticationException
 	 */
-	private boolean checkFormat(String format) {
-		return "json".equals(format);
+	private void checkFormat(String format) {
+		if (!"json".equals(format)) {
+			throw new AuthenticationException(RemoteErrorEnum.HANDSHAKE_FORMAT_NOT_SUPPORT.getErrCode(),
+					RemoteErrorEnum.HANDSHAKE_FORMAT_NOT_SUPPORT.getMessage());
+		}
+	}
+
+	/**
+	 * 校验PlatformShop信息
+	 * 
+	 * @param pshop
+	 * @throws AuthenticationException
+	 */
+	private void checkPlatformShop(PlatformShop pshop) {
+		if (pshop == null) {
+			throw new AuthenticationException(RemoteErrorEnum.HANDSHAKE_PLATFORM_NOT_EXIST.getErrCode(),
+					RemoteErrorEnum.HANDSHAKE_PLATFORM_NOT_EXIST.getMessage());
+		}
+		if (pshop.getSpStatus().intValue() != YesOrNo.YES) {
+			throw new AuthenticationException(RemoteErrorEnum.HANDSHAKE_PLATFORM_NOT_ACTIVE.getErrCode(),
+					RemoteErrorEnum.HANDSHAKE_PLATFORM_NOT_ACTIVE.getMessage());
+		}
+	}
+
+	/**
+	 * 校验签名参数
+	 * 
+	 * @param original 请求头中的sign
+	 * @param calced 服务端计算的sign
+	 * @throws AuthenticationException
+	 */
+	private void checkSign(String original, String calced) {
+		if (original == null || !original.equals(calced)) {
+			throw new AuthenticationException(RemoteErrorEnum.HANDSHAKE_SIGN_NOT_MATCH.getErrCode(),
+					RemoteErrorEnum.HANDSHAKE_SIGN_NOT_MATCH.getMessage());
+		}
 	}
 
 	/**
 	 * 获取websocket握手所必须的请求头参数
 	 * 
 	 * @param req HttpRequest
-	 * @param headerItem WebsocketHandshakeHeader枚举
+	 * @param param WebsocketHandshakeHeader枚举
 	 * @return
 	 * @throws AuthenticationException
 	 */
-	public String getRequiredHeader(HttpRequest req, WebsocketHandshakeHeader headerItem) {
-		String headValue = HttpHeaders.getHeader(req, headerItem.getHeaderKey());
+	public String getRequiredHeader(HttpRequest req, WebsocketHandshakeHeaderParam param) {
+		String headValue = HttpHeaders.getHeader(req, param.getParamName());
 		if (StringUtils.isBlank(headValue)) {
-			throw new AuthenticationException("Websocket握手请求头校验失败，缺少校验必须项！");
+			throw new AuthenticationException(RemoteErrorEnum.HANDSHAKE_LASK_REQEUIRED_HEADER_PARAM.getErrCode(),
+					RemoteErrorEnum.HANDSHAKE_LASK_REQEUIRED_HEADER_PARAM.getMessage());
 		}
 		return headValue;
 	}
 
-	public String getAppSecret(String appKey) {
-		// FIXME get appSecret
+	/**
+	 * 通过appKey获取PlatformShop
+	 * 
+	 * @param appKey
+	 * @return
+	 */
+	public PlatformShop getPlatformShop(String appKey) {
+		PlatformShopExample ex = new PlatformShopExample();
+		ex.createCriteria().andAppKeyEqualTo(appKey);
+		List<PlatformShop> list = platformShopMapper.selectByExample(ex);
+		if (list.size() > 0) {
+			return list.get(0);
+		}
 		return null;
 	}
 }
