@@ -22,9 +22,8 @@ public class Bootstrap {
 		ApplicationContext appContext = new ClassPathXmlApplicationContext("classpath*:spring/app-context.xml");
 		ApplicationContextHolder.setAppContext(appContext);
 		long t0 = System.currentTimeMillis();
-		logger.info("Application context initialized, cost {} ms",  t0 - t);
+		logger.info("Application context initialized, cost {} ms", t0 - t);
 		t = t0;
-		
 		
 	}
 }

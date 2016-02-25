@@ -1,6 +1,7 @@
 package com.dianwoba.forcestaff.link;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
@@ -57,6 +58,7 @@ public class NettyServer {
 	 * 绑定端口
 	 */
 	public void bind() {
-		innerBootstrap.bind(port);
+		ChannelFuture f = innerBootstrap.bind(port).syncUninterruptibly();
+		
 	}
 }

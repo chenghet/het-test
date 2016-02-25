@@ -53,13 +53,17 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 	 */
 	public void handleHttpRequest(final ChannelHandlerContext ctx, final FullHttpRequest req) {
 		try {
+			// Bad request
+			if(!req.getDecoderResult().isSuccess()) {
+				sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN));
+				return;
+			}
+			
 			// Websocket握手必须采用websocket形式
 			if (req.getMethod() != GET) {
 				sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN));
 				return;
 			}
-
-			
 			
 			// 进行Websocket握手
 			WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(getWebSocketLocation(ctx.pipeline(), req,
