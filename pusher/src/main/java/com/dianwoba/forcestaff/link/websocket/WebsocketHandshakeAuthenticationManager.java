@@ -15,13 +15,15 @@ import org.springframework.stereotype.Service;
 import com.dianwoba.constants.CommonConstant.YesOrNo;
 import com.dianwoba.forcestaff.core.RemoteErrorEnum;
 import com.dianwoba.forcestaff.link.auth.AuthenticationException;
+import com.dianwoba.forcestaff.link.auth.AuthenticationInfo;
+import com.dianwoba.forcestaff.link.auth.AuthenticationManager;
 import com.dianwoba.forcestaff.link.auth.AuthenticationUtil;
 import com.dianwoba.redcliff.commdb.entity.PlatformShop;
 import com.dianwoba.redcliff.commdb.entity.PlatformShopExample;
 import com.dianwoba.redcliff.commdb.mapper.PlatformShopMapperExt;
 
 @Service
-public class WebsocketHandshakeAuthenticationManager {
+public class WebsocketHandshakeAuthenticationManager implements AuthenticationManager {
 
 	@Autowired
 	private PlatformShopMapperExt platformShopMapper;
@@ -32,7 +34,7 @@ public class WebsocketHandshakeAuthenticationManager {
 	 * @param req HttpRequest
 	 * @throws AuthenticationException
 	 */
-	public void authenticationCheck(HttpRequest req) {
+	public AuthenticationInfo authenticate(HttpRequest req) {
 		String version = getRequiredHeader(req, WebsocketHandshakeHeaderParam.VERSION);
 
 		// appkey
@@ -55,8 +57,13 @@ public class WebsocketHandshakeAuthenticationManager {
 		map.put(WebsocketHandshakeHeaderParam.APP_KEY.getParamName(), appKey);
 		map.put(WebsocketHandshakeHeaderParam.TIMESTAMP.getParamName(), timestamp);
 		map.put(WebsocketHandshakeHeaderParam.ACCEPT_FORMAT.getParamName(), format);
-		String calced = AuthenticationUtil.sign(map, getPlatformShop(appKey).getSecret());
+		String calced = AuthenticationUtil.sign(map, pshop.getSecret());
 		checkSign(original, calced);
+		
+		AuthenticationInfo info = new AuthenticationInfo();
+		info.setAppKey(appKey);
+		info.setAppSecret(pshop.getSecret());
+		return info;
 	}
 
 	/**

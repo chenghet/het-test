@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.dianwoba</groupId>
-	<artifactId>pusher</artifactId>
+	<artifactId>forcestaff</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
@@ -21,6 +21,16 @@
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-context</artifactId>
 			<version>${spring.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-redis</artifactId>
+			<version>1.5.0.RELEASE</version>
+		</dependency>
+		<dependency>
+			<groupId>com.alibaba</groupId>
+			<artifactId>fastjson</artifactId>
+			<version>1.2.7</version>
 		</dependency>
 		<dependency>
 			<groupId>io.netty</groupId>
@@ -42,7 +52,12 @@
 			<artifactId>redcliff-mapper</artifactId>
 			<version>${dianwoba.mapper.version}</version>
 		</dependency>
-		
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>zookeeper</artifactId>
+			<version>3.3.1</version>
+		</dependency>
+
 		<!-- test -->
 		<dependency>
 			<groupId>junit</groupId>

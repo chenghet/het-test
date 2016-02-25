@@ -8,4 +8,9 @@ public class AuthenticationException extends RemoteExcepiton {
 	public AuthenticationException(String errorCode, String message) {
 		super(errorCode, message);
 	}
+
+	@Override
+	public String toString() {
+		return String.format("权限校验失败：%s，%s", getErrorCode(), getMessage());
+	}
 }

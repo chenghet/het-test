@@ -1,7 +1,9 @@
 package com.dianwoba.forcestaff.link;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
@@ -12,19 +14,37 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.dianwoba.forcestaff.core.ContextHolder;
 import com.dianwoba.forcestaff.link.websocket.WebSocketServerHandler;
 
 public class NettyServer {
 
+	private static Logger logger = LoggerFactory.getLogger(NettyServer.class);
+
 	private int port;
+	private Channel serverChannel;
 	private ServerBootstrap innerBootstrap;
 
 	public NettyServer(int port) {
 		this.port = port;
 	}
 
+	/**
+	 * 启动
+	 */
 	public void start() {
 		prepareBootstrap().bind();
+	}
+
+	/**
+	 * 关闭
+	 */
+	public void shutdown() {
+		innerBootstrap = null;
+		serverChannel.close();
 	}
 
 	/**
@@ -48,7 +68,7 @@ public class NettyServer {
 				pipeline.addLast(new HttpServerCodec());
 				pipeline.addLast(new ChunkedWriteHandler());
 				pipeline.addLast(new HttpObjectAggregator(64 * 1024));
-				pipeline.addLast(new WebSocketServerHandler("/ws"));
+				pipeline.addLast(ContextHolder.getAppContext().getBean(WebSocketServerHandler.class));
 			}
 		});
 		return innerBootstrap;
@@ -59,6 +79,14 @@ public class NettyServer {
 	 */
 	public void bind() {
 		ChannelFuture f = innerBootstrap.bind(port).syncUninterruptibly();
-		
+		f.addListener(new ChannelFutureListener() {
+			public void operationComplete(ChannelFuture f) throws Exception {
+				if (f.isSuccess()) {
+					serverChannel = f.channel();
+				} else {
+					logger.warn("Netty server binding port {} failed", port);
+				}
+			}
+		});
 	}
 }

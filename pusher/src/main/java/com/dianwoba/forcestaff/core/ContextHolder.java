@@ -4,12 +4,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-public final class ApplicationContextHolder {
+import com.dianwoba.forcestaff.Ctx;
 
-	private static Logger logger = LoggerFactory.getLogger(ApplicationContextHolder.class);
+public final class ContextHolder {
+
+	private static Logger logger = LoggerFactory.getLogger(ContextHolder.class);
 	private static ApplicationContext appContext;
+	private static Ctx ctx;
 
-	private ApplicationContextHolder() {
+	private ContextHolder() {
 	}
 
 	public static ApplicationContext getAppContext() {
@@ -25,6 +28,14 @@ public final class ApplicationContextHolder {
 	}
 
 	public static void setAppContext(ApplicationContext appContext) {
-		ApplicationContextHolder.appContext = appContext;
+		ContextHolder.appContext = appContext;
+	}
+	
+	public static void setCtx(Ctx ctx) {
+		ContextHolder.ctx = ctx;
+	}
+	
+	public static Ctx getCtx() {
+		return ctx;
 	}
 }

@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class ResetableTimer {
-	
+
 	private static Logger logger = LoggerFactory.getLogger(ResetableTimer.class);
 
 	private Thread boss;
@@ -47,11 +47,10 @@ public class ResetableTimer {
 		this.task = task;
 	}
 
-	public void start() {
+	public synchronized ResetableTimer start() {
 		if (this.boss != null) {
-			return;
+			return this;
 		}
-
 		this.running = true;
 		this.boss = new Thread(new Runnable() {
 			public void run() {
@@ -74,6 +73,7 @@ public class ResetableTimer {
 			}
 		});
 		this.boss.start();
+		return this;
 	}
 
 	public void stop() throws InterruptedException {

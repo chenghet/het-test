@@ -5,6 +5,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandler;
@@ -27,14 +28,31 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.handler.ssl.SslHandler;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableBeanFactory;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Component;
+
+import com.dianwoba.forcestaff.core.ContextHolder;
+import com.dianwoba.forcestaff.core.InnerException;
+import com.dianwoba.forcestaff.endpoint.Endpoint;
+import com.dianwoba.forcestaff.link.auth.AuthenticationException;
+import com.dianwoba.forcestaff.link.auth.AuthenticationInfo;
+
+@Component
+@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
+	private static final Logger logger = LoggerFactory.getLogger(WebSocketServerHandler.class);
+
+	private String websocketPath = "/";
+	@Autowired
+	private WebsocketHandshakeAuthenticationManager authManager;
 
 	private WebSocketServerHandshaker handshaker;
-	private String websocketPath;
 
-	public WebSocketServerHandler(String websocketPath) {
-		this.websocketPath = websocketPath;
-	}
+	private AuthenticationInfo auth;
 
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
@@ -54,17 +72,29 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 	public void handleHttpRequest(final ChannelHandlerContext ctx, final FullHttpRequest req) {
 		try {
 			// Bad request
-			if(!req.getDecoderResult().isSuccess()) {
+			if (!req.getDecoderResult().isSuccess()) {
+				logger.warn("【handshake-failed】Bad request from {}", ctx.channel().remoteAddress());
 				sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN));
 				return;
 			}
-			
+
 			// Websocket握手必须采用websocket形式
 			if (req.getMethod() != GET) {
 				sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN));
+				logger.warn("【handshake-failed】Unsupportable http methed GET from", ctx.channel().remoteAddress());
 				return;
 			}
-			
+
+			// 握手授权校验
+			try {
+				auth = authManager.authenticate(req);
+			} catch (AuthenticationException e) {
+				ByteBuf buf = Unpooled.buffer().writeBytes(e.toString().getBytes());
+				sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN, buf));
+				logger.warn("【handshake-failed】authenticate failed from {} for {}", ctx.channel().remoteAddress(), e);
+				return;
+			}
+
 			// 进行Websocket握手
 			WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(getWebSocketLocation(ctx.pipeline(), req,
 					this.websocketPath), null, true);
@@ -79,9 +109,13 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 							// Websocket握手成功
 							WebSocketServerHandler.this.handshaker = handshaker;
 							ctx.pipeline().replace(WebSocketServerHandler.this, "WS403Responder", forbiddenHttpRequestResponder());
+
+							// 注册Endpoint
+							Endpoint ep = new Endpoint(auth.getAppKey(), future.channel());
+							ContextHolder.getCtx().registerEndpoint(ep);
 						} else {
 							// Websocket握手失败
-							ByteBuf buf = Unpooled.buffer().writeBytes("Websocket握手失败，连接失败！".getBytes("UTF-8"));
+							ByteBuf buf = Unpooled.buffer().writeBytes("Websocket握手失败，连接失败！".getBytes());
 							sendHttpResponse(ctx, req, new DefaultFullHttpResponse(HTTP_1_1, FORBIDDEN, buf));
 						}
 					}
@@ -151,22 +185,46 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 	private void handleWebsocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
 		// 判断是否关闭链路的指令
 		if (frame instanceof CloseWebSocketFrame) {
-			handshaker.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
+			ChannelFuture f = handshaker.close(ctx.channel(), (CloseWebSocketFrame) frame.retain());
+			// 不论close handshake是否成功，注销Endpoint.
+			f.addListener(new ChannelFutureListener() {
+				public void operationComplete(ChannelFuture f0) throws Exception {
+					Endpoint endpoint = ContextHolder.getCtx().findEndpoint(auth.getAppKey(), remoteAddr(f0.channel()));
+					ContextHolder.getCtx().unregisterEndpoint(endpoint);
+					endpoint.shutdown();
+				}
+			});
 		}
 		// 判断是否ping消息
 		if (frame instanceof PingWebSocketFrame) {
 			ctx.channel().write(new PongWebSocketFrame(frame.content().retain()));
+			// Endpoint保鲜
+			Endpoint endpoint = ContextHolder.getCtx().findEndpoint(auth.getAppKey(), remoteAddr(ctx.channel()));
+			endpoint.refresh();
 			return;
 		}
 		throw new UnsupportedOperationException("消息推送服务不支持任何消息请求！");
-//		// 仅支持文本消息，不支持二进制消息
-//		if (!(frame instanceof TextWebSocketFrame)) {
-//			throw new UnsupportedOperationException(String.format("%s frame types not supported", frame.getClass().getName()));
-//		}
-//		// 返回应答消息
-//		String request = ((TextWebSocketFrame) frame).text();
-//		TextWebSocketFrame tws = new TextWebSocketFrame(new Date().toString() + ctx.channel().toString() + "：" + request);
-//		ctx.channel().writeAndFlush(tws);
 	}
 
+	/**
+	 * 获取Endpoint的id号
+	 * 
+	 * @param appKey
+	 * @param channel
+	 * @return
+	 */
+	public static String remoteAddr(Channel channel) {
+		if (channel == null || !channel.isActive()) {
+			throw new InnerException("channel is null or not active");
+		}
+		return channel.remoteAddress().toString();
+	}
+
+	public String getWebsocketPath() {
+		return websocketPath;
+	}
+
+	public void setWebsocketPath(String websocketPath) {
+		this.websocketPath = websocketPath;
+	}
 }
