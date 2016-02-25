@@ -1,4 +1,4 @@
-package com.dianwoba.pusher;
+package com.dianwoba.forcestaff.core;
 
 public class RemoteExcepiton extends RuntimeException {
 	private static final long serialVersionUID = 1L;

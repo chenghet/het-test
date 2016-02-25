@@ -1,4 +1,4 @@
-package com.dianwoba.pusher;
+package com.dianwoba.forcestaff.link.auth;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;

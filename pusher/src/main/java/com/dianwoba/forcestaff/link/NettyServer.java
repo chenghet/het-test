@@ -1,4 +1,4 @@
-package com.dianwoba.pusher;
+package com.dianwoba.forcestaff.link;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
@@ -11,23 +11,31 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.stream.ChunkedWriteHandler;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.dianwoba.forcestaff.link.websocket.WebSocketServerHandler;
 
 public class NettyServer {
-	
-	private AtomicBoolean prepared = new AtomicBoolean(false);
+
 	private int port;
 	private ServerBootstrap innerBootstrap;
 
-	public NettyServer() {
-		innerBootstrap = new ServerBootstrap();
-		prepare();
+	public NettyServer(int port) {
+		this.port = port;
 	}
 
-	public void prepare() {
-		if (prepared.get() == true)
-			return;
-		
+	public void start() {
+		prepareBootstrap().bind();
+	}
+
+	/**
+	 * 构造ServerBootstrap
+	 * 
+	 * @return
+	 */
+	private ServerBootstrap prepareBootstrap() {
+		if (innerBootstrap != null)
+			return innerBootstrap;
+
+		innerBootstrap = new ServerBootstrap();
 		EventLoopGroup boss = new NioEventLoopGroup();
 		int processorNum = Runtime.getRuntime().availableProcessors();
 		EventLoopGroup workers = new NioEventLoopGroup(processorNum * 2);
@@ -39,13 +47,16 @@ public class NettyServer {
 				pipeline.addLast(new HttpServerCodec());
 				pipeline.addLast(new ChunkedWriteHandler());
 				pipeline.addLast(new HttpObjectAggregator(64 * 1024));
-				pipeline.addLast(new DWBWebSocketServerHandler("/ws"));
+				pipeline.addLast(new WebSocketServerHandler("/ws"));
 			}
 		});
-		prepared.getAndSet(true);
+		return innerBootstrap;
 	}
-	
-	public void bind(){
+
+	/**
+	 * 绑定端口
+	 */
+	public void bind() {
 		innerBootstrap.bind(port);
 	}
 }

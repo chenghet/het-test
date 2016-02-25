@@ -1,4 +1,4 @@
-package com.dianwoba.pusher;
+package com.dianwoba.forcestaff.endpoint;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -9,6 +9,7 @@ import io.netty.channel.ChannelHandlerContext;
  * @author Administrator
  */
 public class Endpoint {
+	
 	private String appKey;
 	private ChannelHandlerContext ctx;
 	private long lastActive; // 最后一次通信的时间戳

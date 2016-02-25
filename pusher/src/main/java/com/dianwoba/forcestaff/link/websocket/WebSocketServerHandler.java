@@ -1,4 +1,4 @@
-package com.dianwoba.pusher;
+package com.dianwoba.forcestaff.link.websocket;
 
 import static io.netty.handler.codec.http.HttpMethod.GET;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
@@ -27,12 +27,12 @@ import io.netty.handler.codec.http.websocketx.WebSocketServerHandshaker;
 import io.netty.handler.codec.http.websocketx.WebSocketServerHandshakerFactory;
 import io.netty.handler.ssl.SslHandler;
 
-public class DWBWebSocketServerHandler extends ChannelInboundHandlerAdapter {
+public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 
 	private WebSocketServerHandshaker handshaker;
 	private String websocketPath;
 
-	public DWBWebSocketServerHandler(String websocketPath) {
+	public WebSocketServerHandler(String websocketPath) {
 		this.websocketPath = websocketPath;
 	}
 
@@ -46,7 +46,7 @@ public class DWBWebSocketServerHandler extends ChannelInboundHandlerAdapter {
 	}
 
 	/**
-	 * 处理Http请求，即Websocket握手
+	 * 处理Http请求，即Websocket握手EEE
 	 * 
 	 * @param ctx
 	 * @param req
@@ -59,6 +59,8 @@ public class DWBWebSocketServerHandler extends ChannelInboundHandlerAdapter {
 				return;
 			}
 
+			
+			
 			// 进行Websocket握手
 			WebSocketServerHandshakerFactory wsFactory = new WebSocketServerHandshakerFactory(getWebSocketLocation(ctx.pipeline(), req,
 					this.websocketPath), null, true);
@@ -71,8 +73,8 @@ public class DWBWebSocketServerHandler extends ChannelInboundHandlerAdapter {
 					public void operationComplete(ChannelFuture future) throws Exception {
 						if (future.isSuccess()) {
 							// Websocket握手成功
-							DWBWebSocketServerHandler.this.handshaker = handshaker;
-							ctx.pipeline().replace(DWBWebSocketServerHandler.this, "WS403Responder", forbiddenHttpRequestResponder());
+							WebSocketServerHandler.this.handshaker = handshaker;
+							ctx.pipeline().replace(WebSocketServerHandler.this, "WS403Responder", forbiddenHttpRequestResponder());
 						} else {
 							// Websocket握手失败
 							ByteBuf buf = Unpooled.buffer().writeBytes("Websocket握手失败，连接失败！".getBytes("UTF-8"));

@@ -1,4 +1,4 @@
-package com.dianwoba.pusher;
+package com.dianwoba.forcestaff.core;
 
 public enum RemoteErrorEnum {
 	

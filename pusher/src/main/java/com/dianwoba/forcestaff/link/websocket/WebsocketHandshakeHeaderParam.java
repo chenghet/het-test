@@ -1,4 +1,4 @@
-package com.dianwoba.pusher;
+package com.dianwoba.forcestaff.link.websocket;
 
 public enum WebsocketHandshakeHeaderParam {
 	VERSION("version"), APP_KEY("appKey"), TIMESTAMP("timestamp"), SIGN("sign"), ACCEPT_FORMAT("accept-format");

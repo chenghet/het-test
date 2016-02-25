@@ -1,4 +1,4 @@
-package com.dianwoba.pusher;
+package com.dianwoba.forcestaff.link.websocket;
 
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpRequest;
@@ -13,6 +13,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.dianwoba.constants.CommonConstant.YesOrNo;
+import com.dianwoba.forcestaff.core.RemoteErrorEnum;
+import com.dianwoba.forcestaff.link.auth.AuthenticationException;
+import com.dianwoba.forcestaff.link.auth.AuthenticationUtil;
 import com.dianwoba.redcliff.commdb.entity.PlatformShop;
 import com.dianwoba.redcliff.commdb.entity.PlatformShopExample;
 import com.dianwoba.redcliff.commdb.mapper.PlatformShopMapperExt;
