@@ -9,14 +9,14 @@ import com.dianwoba.forcestaff.Ctx;
 public final class ContextHolder {
 
 	private static Logger logger = LoggerFactory.getLogger(ContextHolder.class);
-	private static ApplicationContext appContext;
+	private static ApplicationContext appCtx;
 	private static Ctx ctx;
 
 	private ContextHolder() {
 	}
 
-	public static ApplicationContext getAppContext() {
-		while (appContext == null) {
+	public static ApplicationContext getAppCtx() {
+		while (appCtx == null) {
 			logger.warn("Application context is not setted.");
 			try {
 				Thread.sleep(3000);
@@ -24,17 +24,17 @@ public final class ContextHolder {
 				logger.warn("Thread sleep interrupted.");
 			}
 		}
-		return appContext;
+		return appCtx;
 	}
 
-	public static void setAppContext(ApplicationContext appContext) {
-		ContextHolder.appContext = appContext;
+	public static void setAppCtx(ApplicationContext appCtx) {
+		ContextHolder.appCtx = appCtx;
 	}
-	
+
 	public static void setCtx(Ctx ctx) {
 		ContextHolder.ctx = ctx;
 	}
-	
+
 	public static Ctx getCtx() {
 		return ctx;
 	}

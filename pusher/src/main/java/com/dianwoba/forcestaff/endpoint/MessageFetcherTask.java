@@ -1,27 +1,27 @@
-package com.dianwoba.forcestaff.message;
+package com.dianwoba.forcestaff.endpoint;
+
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.alibaba.fastjson.JSON;
+import com.dianwoba.forcestaff.message.Message;
+import com.dianwoba.forcestaff.message.MessageSource;
 
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 
-import com.alibaba.fastjson.JSON;
-import com.dianwoba.forcestaff.endpoint.Endpoint;
+public class MessageFetcherTask implements Runnable {
 
-public class MessageFetcher extends Thread {
-	
 	private Endpoint endpoint;
 	private MessageSource messageSource;
-	private boolean stop = false;
-	
-	public MessageFetcher(Endpoint endpoint, MessageSource messageSource) {
+	private AtomicBoolean stop = new AtomicBoolean(false);
+
+	public MessageFetcherTask(Endpoint endpoint, MessageSource messageSource) {
 		this.endpoint = endpoint;
 		this.messageSource = messageSource;
-		// 守护线程
-		this.setDaemon(true);
 	}
-	
-	@Override
+
 	public void run() {
-		while(!stop) {
+		while (!stop.get()) {
 			final Message msg = messageSource.fetchMessage();
 			if (msg != null) {
 				ChannelFuture f = endpoint.getChannel().writeAndFlush(JSON.toJSON(msg));
@@ -42,5 +42,12 @@ public class MessageFetcher extends Thread {
 				}
 			}
 		}
+	}
+
+	/**
+	 * 关闭
+	 */
+	public void shutdown() {
+		stop.set(true);
 	}
 }

@@ -113,6 +113,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 							// 注册Endpoint
 							Endpoint ep = new Endpoint(auth.getAppKey(), future.channel());
 							ContextHolder.getCtx().registerEndpoint(ep);
+							ep.start();
 						} else {
 							// Websocket握手失败
 							ByteBuf buf = Unpooled.buffer().writeBytes("Websocket握手失败，连接失败！".getBytes());

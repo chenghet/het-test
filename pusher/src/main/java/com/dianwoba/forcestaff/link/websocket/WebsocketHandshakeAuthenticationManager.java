@@ -12,7 +12,6 @@ import org.apache.commons.lang.math.NumberUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.dianwoba.constants.CommonConstant.YesOrNo;
 import com.dianwoba.forcestaff.core.RemoteErrorEnum;
 import com.dianwoba.forcestaff.link.auth.AuthenticationException;
 import com.dianwoba.forcestaff.link.auth.AuthenticationInfo;
@@ -103,7 +102,7 @@ public class WebsocketHandshakeAuthenticationManager implements AuthenticationMa
 			throw new AuthenticationException(RemoteErrorEnum.HANDSHAKE_PLATFORM_NOT_EXIST.getErrCode(),
 					RemoteErrorEnum.HANDSHAKE_PLATFORM_NOT_EXIST.getMessage());
 		}
-		if (pshop.getSpStatus().intValue() != YesOrNo.YES) {
+		if (pshop.getSpStatus().intValue() != 1) {
 			throw new AuthenticationException(RemoteErrorEnum.HANDSHAKE_PLATFORM_NOT_ACTIVE.getErrCode(),
 					RemoteErrorEnum.HANDSHAKE_PLATFORM_NOT_ACTIVE.getMessage());
 		}

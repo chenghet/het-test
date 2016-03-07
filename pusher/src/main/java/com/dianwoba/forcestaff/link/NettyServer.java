@@ -1,5 +1,11 @@
 package com.dianwoba.forcestaff.link;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.dianwoba.forcestaff.core.ContextHolder;
+import com.dianwoba.forcestaff.link.websocket.WebSocketServerHandler;
+
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -13,12 +19,6 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.stream.ChunkedWriteHandler;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.dianwoba.forcestaff.core.ContextHolder;
-import com.dianwoba.forcestaff.link.websocket.WebSocketServerHandler;
 
 public class NettyServer {
 
@@ -36,14 +36,16 @@ public class NettyServer {
 	 * 启动
 	 */
 	public void start() {
-		prepareBootstrap().bind();
+		prepareBootstrap();
+		bind();
 	}
 
 	/**
 	 * 关闭
 	 */
 	public void shutdown() {
-		innerBootstrap = null;
+		innerBootstrap.group().shutdownGracefully();
+		innerBootstrap.childGroup().shutdownGracefully();
 		serverChannel.close();
 	}
 
@@ -68,7 +70,7 @@ public class NettyServer {
 				pipeline.addLast(new HttpServerCodec());
 				pipeline.addLast(new ChunkedWriteHandler());
 				pipeline.addLast(new HttpObjectAggregator(64 * 1024));
-				pipeline.addLast(ContextHolder.getAppContext().getBean(WebSocketServerHandler.class));
+				pipeline.addLast(ContextHolder.getAppCtx().getBean(WebSocketServerHandler.class));
 			}
 		});
 		return innerBootstrap;

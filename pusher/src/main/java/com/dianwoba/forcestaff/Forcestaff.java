@@ -1,5 +1,8 @@
 package com.dianwoba.forcestaff;
 
+import java.util.Properties;
+import java.util.Scanner;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -7,6 +10,7 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import com.dianwoba.forcestaff.core.ContextHolder;
 import com.dianwoba.forcestaff.link.NettyServer;
+import com.dianwoba.forcestaff.service.zk.ZKException;
 
 /**
  * Push Server的启动器类
@@ -20,9 +24,9 @@ public class Forcestaff {
 	private final Ctx ctx;
 	private NettyServer innerServer;
 
-	public Forcestaff() {
-		ctx = new Ctx();
-		innerServer = new NettyServer(45678);
+	public Forcestaff(SystemConfig config) throws ZKException {
+		ctx = new Ctx(config);
+		innerServer = new NettyServer(config.getServerPort());
 	}
 
 	public void start() {
@@ -30,6 +34,7 @@ public class Forcestaff {
 	}
 
 	public void shutdown() {
+		ctx.shutdown();
 		innerServer.shutdown();
 	}
 
@@ -37,16 +42,30 @@ public class Forcestaff {
 		return ctx;
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws ZKException {
 		logger.info("Starting push server...");
 		long t = System.currentTimeMillis();
 		ApplicationContext appContext = new ClassPathXmlApplicationContext("classpath*:spring/app-context.xml");
-		ContextHolder.setAppContext(appContext);
+		ContextHolder.setAppCtx(appContext);
 		long t0 = System.currentTimeMillis();
 		logger.info("Application context initialized, cost {} ms", t0 - t);
 		t = t0;
-
-		Forcestaff forcestaff = new Forcestaff();
-		ContextHolder.setCtx(forcestaff.getCtx());
+		
+		Properties prop = (Properties) appContext.getBean("systemProperty");
+		if (prop == null) {
+			prop = new Properties();
+		}
+		Forcestaff forcestaff = new Forcestaff(new SystemConfig(prop));
+		forcestaff.start();
+		
+		// 关闭服务
+		@SuppressWarnings("resource")
+		Scanner scanner = new Scanner(System.in);
+		while (true) {
+			if ("shutdown".equals(scanner.nextLine())) {
+				forcestaff.shutdown();
+				break;
+			}
+		}
 	}
 }

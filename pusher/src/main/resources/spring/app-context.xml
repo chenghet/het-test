@@ -1,6 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+	 http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+	 http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd">
 
+	<context:component-scan base-package="com.dianwoba.forcestaff"></context:component-scan>
+
+	<!-- 消息源工厂类 -->
+	<bean class="com.dianwoba.forcestaff.message.redis.RedisMessageSourceFactory"></bean>
+
+	<util:properties id="systemProperty">
+		<prop key="zookeeper.connect">localhost:2181</prop>
+		<prop key="zookeeper.session.timeout.ms">5000</prop>
+		<prop key="zookeeper.connection.timeout.ms">5000</prop>
+		<prop key="forcestaff.server.port">45678</prop>
+	</util:properties>
+
+
+	<bean class="org.springframework.data.redis.core.StringRedisTemplate"></bean>
+	
+	<bean class="org.springframework.data.redis.connection.jedis.JedisConnectionFactory">
+		
+	</bean>
+	
+	<bean class="redis.clients.jedis.JedisPoolConfig">
+		<property name="maxTotal" value="100"></property>
+		<property name="maxIdle" value="20"></property>
+		<property name="time" value="100"></property>
+		<property name="maxTotal" value="100"></property>
+	</bean>
 </beans>
