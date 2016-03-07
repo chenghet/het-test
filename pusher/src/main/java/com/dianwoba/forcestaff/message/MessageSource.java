@@ -8,7 +8,7 @@ package com.dianwoba.forcestaff.message;
  * @author Administrator
  */
 public interface MessageSource {
-		
+	
 	/**
 	 * 获取消息
 	 * 

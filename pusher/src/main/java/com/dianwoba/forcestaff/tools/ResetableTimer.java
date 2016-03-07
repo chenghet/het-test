@@ -1,4 +1,4 @@
-package com.dianwoba.forcestaff;
+package com.dianwoba.forcestaff.tools;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 /**
  * 可以进行重置的简易定时器
  * 
- * @author Administrator
+ * @author Het.C
  *
  */
 public class ResetableTimer {
@@ -26,6 +26,10 @@ public class ResetableTimer {
 
 	public ResetableTimer(int periodMillisecond) {
 		this(periodMillisecond, null);
+	}
+
+	public ResetableTimer(Runnable task) {
+		this(0, task);
 	}
 
 	public ResetableTimer(int periodMillisecond, Runnable task) {
