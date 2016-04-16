@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration>
+
+    <!-- * 1. 一个appender子元素定义一个日志输出目的地 * 2. 一个logger子元素定义一个日志写出器 -->
+    <!-- catalina.out -->
+    <appender name="consoleAppend" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern"
+                   value="%-d{yyyy-MM-dd HH:mm:ss} [%5p][%t][%c{1}]-[%M] %m%n"/>
+        </layout>
+    </appender>
+
+    <!-- error log -->
+    <appender name="errorAppend" class="org.apache.log4j.DailyRollingFileAppender">
+        <param name="File" value="${webapp.root}/logs/error/error.html"/>
+        <param name="Append" value="true"/>
+        <param name="DatePattern" value="yyyy-MM-dd-HH-mm'.html'"/>
+        <param name="MaxBackupIndex" value="10"/>
+        <param name="MaxFileSize" value="4000000"/>
+        <param name="encoding" value="utf-8"/>
+        <layout class="org.apache.log4j.HTMLLayout">
+        </layout>
+        <filter class="org.apache.log4j.varia.LevelRangeFilter">
+            <param name="LevelMin" value="ERROR"/>
+            <param name="LevelMax" value="ERROR"/>
+        </filter>
+    </appender>
+
+    <!-- root的作用(相当于全局的意思): 1.[priority ]:指定默认的全局输出级别 2.[appender-ref ]:指定一些默认的append（没有指出特殊包或者类，即那些没有指定<logger>元素的append）的输出； -->
+    <root>
+        <priority value="INFO"/>
+        <!-- 将 logger 中 additivity=true 的日志或者没有指定<logger>的append输出到控制台 -->
+        <appender-ref ref="consoleAppend"/>
+        <!-- 将全局的 error 日志输出到error文件中 -->
+        <appender-ref ref="errorAppend"/>
+    </root>
+
+</log4j:configuration>
